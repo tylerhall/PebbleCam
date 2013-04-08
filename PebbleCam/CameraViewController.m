@@ -15,7 +15,7 @@
   
 	[self setCaptureManager:[[CaptureSessionManager alloc] init]];
   
-	[[self captureManager] addVideoInputFrontCamera:YES]; // set to YES for Front Camera, No for Back camera
+	[[self captureManager] addVideoInputFrontCamera:NO]; // set to YES for Front Camera, No for Back camera
   
   [[self captureManager] addStillImageOutput];
   
