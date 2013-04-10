@@ -9,5 +9,8 @@
 
 @property (strong) CaptureSessionManager *captureManager;
 @property (nonatomic, strong) UILabel *scanningLabel;
+@property (nonatomic, strong) UIButton *cameraFlipButton;
+@property BOOL camera;
+
 
 @end
