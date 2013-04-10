@@ -53,7 +53,8 @@
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(saveImageToPhotoAlbum) name:kImageCapturedSuccessfully object:nil];
   
 	[[captureManager captureSession] startRunning];
-    
+    [[captureManager captureSession] setSessionPreset:@"AVCaptureSessionPresetPhoto"]; // AVCaptureSession/sessionPreset
+
     [[UIApplication sharedApplication] beginReceivingRemoteControlEvents];
     [self becomeFirstResponder];
     
@@ -142,8 +143,7 @@
 
 - (BOOL)shouldAutorotate
 {    
-    [self rotateButtonOrientation:self];        
-        
+    [self rotateButtonOrientation:self];
     return NO;
 }
 

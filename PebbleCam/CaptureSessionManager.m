@@ -22,8 +22,6 @@
 - (void)addVideoPreviewLayer {
 	[self setPreviewLayer:[[AVCaptureVideoPreviewLayer alloc] initWithSession:[self captureSession]]];
 	[[self previewLayer] setVideoGravity:AVLayerVideoGravityResizeAspectFill];
-
-
 }
 
 - (void)addVideoInputFrontCamera:(BOOL)front {
@@ -111,25 +109,32 @@
   
 	NSLog(@"about to request a capture from: %@", [self stillImageOutput]);
 	[[self stillImageOutput] captureStillImageAsynchronouslyFromConnection:videoConnection 
-                                                       completionHandler:^(CMSampleBufferRef imageSampleBuffer, NSError *error) { 
-                                                         CFDictionaryRef exifAttachments = CMGetAttachment(imageSampleBuffer, kCGImagePropertyExifDictionary, NULL);
-                                                         if (exifAttachments) {
-                                                           NSLog(@"attachements: %@", exifAttachments);
-                                                         } else { 
-                                                           NSLog(@"no attachments");
-                                                         }
-                                                         NSData *imageData = [AVCaptureStillImageOutput jpegStillImageNSDataRepresentation:imageSampleBuffer];
-                                                         UIImage *originalImage = [[UIImage alloc] initWithData:imageData];
-                                                         UIImageOrientation orientation = stillImage.imageOrientation;
-                                                         UIImage *image;
-                                                           if(orientation == UIImageOrientationRight)
-                                                               image = [[UIImage alloc] initWithCGImage:originalImage.CGImage scale:originalImage.scale orientation:UIImageOrientationDown];
-                                                         else if(orientation == UIImageOrientationLeft)
-                                                               image = [[UIImage alloc] initWithCGImage:originalImage.CGImage scale:originalImage.scale orientation:UIImageOrientationDown];
-                                                         else image = originalImage;
-                                                         [self setStillImage:image];
-                                                         [[NSNotificationCenter defaultCenter] postNotificationName:kImageCapturedSuccessfully object:nil];
-                                                       }];
+        completionHandler:^(CMSampleBufferRef imageSampleBuffer, NSError *error) {
+            CFDictionaryRef exifAttachments = CMGetAttachment(imageSampleBuffer, kCGImagePropertyExifDictionary, NULL);
+
+            if (exifAttachments) {
+                NSLog(@"attachements: %@", exifAttachments);
+            } else { 
+                NSLog(@"no attachments");
+            }
+            
+            NSData *imageData = [AVCaptureStillImageOutput jpegStillImageNSDataRepresentation:imageSampleBuffer];
+            UIImage *originalImage = [[UIImage alloc] initWithData:imageData];
+
+            UIDeviceOrientation orientation = [[UIDevice currentDevice] orientation];
+            UIImage *image;
+            
+//            NSLog(@"%d", [[UIDevice currentDevice] orientation]);
+            
+            if(orientation == UIDeviceOrientationLandscapeLeft)
+               image = [[UIImage alloc] initWithCGImage:originalImage.CGImage scale:originalImage.scale orientation:UIImageOrientationUp];
+            else if(orientation == UIDeviceOrientationLandscapeRight)
+               image = [[UIImage alloc] initWithCGImage:originalImage.CGImage scale:originalImage.scale orientation:UIImageOrientationDown];
+            else image = originalImage;
+            
+            [self setStillImage:image];
+            [[NSNotificationCenter defaultCenter] postNotificationName:kImageCapturedSuccessfully object:nil];
+    }];
 }
 
 - (void)dealloc {
