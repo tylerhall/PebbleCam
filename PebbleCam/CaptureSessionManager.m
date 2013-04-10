@@ -22,7 +22,6 @@
 - (void)addVideoPreviewLayer {
 	[self setPreviewLayer:[[AVCaptureVideoPreviewLayer alloc] initWithSession:[self captureSession]]];
 	[[self previewLayer] setVideoGravity:AVLayerVideoGravityResizeAspectFill];
-  
 }
 
 - (void)addVideoInputFrontCamera:(BOOL)front {
@@ -49,7 +48,7 @@
     
     NSError *error = nil;
     
-    if (front) {
+    if (front) {     
         AVCaptureDeviceInput *frontFacingCameraDeviceInput = [AVCaptureDeviceInput deviceInputWithDevice:frontCamera error:&error];
         if (!error) {
             if ([[self captureSession] canAddInput:frontFacingCameraDeviceInput]) {
@@ -58,8 +57,9 @@
                 NSLog(@"Couldn't add front facing video input");
             }
         }
-    } else {
+    } else {   
         AVCaptureDeviceInput *backFacingCameraDeviceInput = [AVCaptureDeviceInput deviceInputWithDevice:backCamera error:&error];
+
         if (!error) {
             if ([[self captureSession] canAddInput:backFacingCameraDeviceInput]) {
                 [[self captureSession] addInput:backFacingCameraDeviceInput];
@@ -103,24 +103,38 @@
 			}
 		}
 		if (videoConnection) { 
-      break; 
-    }
+            break;
+        }
 	}
   
 	NSLog(@"about to request a capture from: %@", [self stillImageOutput]);
 	[[self stillImageOutput] captureStillImageAsynchronouslyFromConnection:videoConnection 
-                                                       completionHandler:^(CMSampleBufferRef imageSampleBuffer, NSError *error) { 
-                                                         CFDictionaryRef exifAttachments = CMGetAttachment(imageSampleBuffer, kCGImagePropertyExifDictionary, NULL);
-                                                         if (exifAttachments) {
-                                                           NSLog(@"attachements: %@", exifAttachments);
-                                                         } else { 
-                                                           NSLog(@"no attachments");
-                                                         }
-                                                         NSData *imageData = [AVCaptureStillImageOutput jpegStillImageNSDataRepresentation:imageSampleBuffer];    
-                                                         UIImage *image = [[UIImage alloc] initWithData:imageData];
-                                                         [self setStillImage:image];
-                                                         [[NSNotificationCenter defaultCenter] postNotificationName:kImageCapturedSuccessfully object:nil];
-                                                       }];
+        completionHandler:^(CMSampleBufferRef imageSampleBuffer, NSError *error) {
+            CFDictionaryRef exifAttachments = CMGetAttachment(imageSampleBuffer, kCGImagePropertyExifDictionary, NULL);
+
+            if (exifAttachments) {
+                NSLog(@"attachements: %@", exifAttachments);
+            } else { 
+                NSLog(@"no attachments");
+            }
+            
+            NSData *imageData = [AVCaptureStillImageOutput jpegStillImageNSDataRepresentation:imageSampleBuffer];
+            UIImage *originalImage = [[UIImage alloc] initWithData:imageData];
+
+            UIDeviceOrientation orientation = [[UIDevice currentDevice] orientation];
+            UIImage *image;
+            
+//            NSLog(@"%d", [[UIDevice currentDevice] orientation]);
+            
+            if(orientation == UIDeviceOrientationLandscapeLeft)
+               image = [[UIImage alloc] initWithCGImage:originalImage.CGImage scale:originalImage.scale orientation:UIImageOrientationUp];
+            else if(orientation == UIDeviceOrientationLandscapeRight)
+               image = [[UIImage alloc] initWithCGImage:originalImage.CGImage scale:originalImage.scale orientation:UIImageOrientationDown];
+            else image = originalImage;
+            
+            [self setStillImage:image];
+            [[NSNotificationCenter defaultCenter] postNotificationName:kImageCapturedSuccessfully object:nil];
+    }];
 }
 
 - (void)dealloc {
