@@ -14,9 +14,19 @@
 @synthesize cameraFlipButton = _cameraFlipButton;
 
 - (void)viewDidLoad {
+    
+    [[self view] setBackgroundColor:[UIColor blackColor]];
 
-    [self updateCaptureManager];
-
+    [self setCaptureManager:[[CaptureSessionManager alloc] init]];
+	[[self captureManager] addVideoInputFrontCamera:camera]; // initializes to NO by default
+    [[self captureManager] addStillImageOutput];
+	[[self captureManager] addVideoPreviewLayer];
+	CGRect layerRect = [[[self view] layer] bounds];
+    [[[self captureManager] previewLayer] setBounds:layerRect];
+    [[[self captureManager] previewLayer] setPosition:CGPointMake(CGRectGetMidX(layerRect),CGRectGetMidY(layerRect))];
+	[[[self view] layer] addSublayer:[[self captureManager] previewLayer]];
+    
+    
     _cameraFlipButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
     [_cameraFlipButton addTarget:self action:@selector(switchCamera:) forControlEvents:UIControlEventTouchUpInside];
     
@@ -26,7 +36,7 @@
     [_cameraFlipButton setBackgroundImage:switchCameraImage forState:UIControlStateNormal];
     [_cameraFlipButton setBackgroundImage:switchCameraImagePressed forState:UIControlStateHighlighted];
     
-    _cameraFlipButton.frame = CGRectMake(246.8, 12.0, 61.2, 32.0);
+    _cameraFlipButton.frame = CGRectMake(245, 13.0, 62, 32.0);
     [_cameraFlipButton setBackgroundColor:[UIColor clearColor]];
     [[self view] addSubview:_cameraFlipButton];
     
@@ -64,15 +74,11 @@
 
 - (void)updateCaptureManager
 {
-    [self setCaptureManager:[[CaptureSessionManager alloc] init]];
+    for (AVCaptureInput *i in [[[self captureManager] captureSession] inputs])
+        [[[self captureManager] captureSession] removeInput:i];
     
-	[[self captureManager] addVideoInputFrontCamera:camera]; // set to current camera
-    [[self captureManager] addStillImageOutput];
-	[[self captureManager] addVideoPreviewLayer];
-	CGRect layerRect = [[[self view] layer] bounds];
-    [[[self captureManager] previewLayer] setBounds:layerRect];
-    [[[self captureManager] previewLayer] setPosition:CGPointMake(CGRectGetMidX(layerRect),CGRectGetMidY(layerRect))];
-	[[[self view] layer] addSublayer:[[self captureManager] previewLayer]];
+	[[self captureManager] addVideoInputFrontCamera:camera];
+    [[[self captureManager] captureSession] commitConfiguration];
 }
 
 
@@ -81,8 +87,6 @@
 {
     [self setCamera:![self camera]]; //toggle camera between front and back
     [self updateCaptureManager];     //update the captureManager with the new camera view
-    [[[self captureManager] captureSession] startRunning];
-    [[self view] bringSubviewToFront:_cameraFlipButton];
 }
 
 
@@ -102,6 +106,48 @@
   }
 }
 
+
+- (void)rotateButtonOrientation:(id)sender
+{
+    if([[UIDevice currentDevice] orientation] == UIInterfaceOrientationLandscapeRight){
+        CGPoint newCenter = CGPointMake(291, 44);
+        
+        [UIView animateWithDuration: 0.2
+                              delay: 0
+                            options: (UIViewAnimationOptionCurveLinear | UIViewAnimationOptionAllowUserInteraction)
+                         animations:^{_cameraFlipButton.center = newCenter ; _cameraFlipButton.transform = CGAffineTransformMakeRotation(M_PI/2);}
+                         completion:^(BOOL finished) { }
+         ];
+    } else if([[UIDevice currentDevice] orientation] == UIInterfaceOrientationLandscapeLeft){
+        CGPoint newCenter = CGPointMake(291, 44);
+        
+        [UIView animateWithDuration: 0.2
+                              delay: 0
+                            options: (UIViewAnimationOptionCurveLinear | UIViewAnimationOptionAllowUserInteraction)
+                         animations:^{_cameraFlipButton.center = newCenter ; _cameraFlipButton.transform = CGAffineTransformMakeRotation(-M_PI/2);}
+                         completion:^(BOOL finished) { }
+         ];
+    } else if([[UIDevice currentDevice] orientation] == UIInterfaceOrientationPortrait){
+        CGPoint newCenter = CGPointMake(276, 29);
+        
+        [UIView animateWithDuration: 0.2
+                              delay: 0
+                            options: (UIViewAnimationOptionCurveLinear | UIViewAnimationOptionAllowUserInteraction)
+                         animations:^{_cameraFlipButton.center = newCenter ; _cameraFlipButton.transform = CGAffineTransformMakeRotation(0);}
+                         completion:^(BOOL finished) { }
+         ];
+    }
+}
+
+
+- (BOOL)shouldAutorotate
+{    
+    [self rotateButtonOrientation:self];        
+        
+    return NO;
+}
+
+
 - (void)didReceiveMemoryWarning {
   [super didReceiveMemoryWarning];
 }
@@ -111,14 +157,17 @@
     return YES;
 }
 
+
 - (void)remoteControlReceivedWithEvent:(UIEvent *)event {
-    switch (event.subtype) {
-        case UIEventSubtypeRemoteControlNextTrack:
-            [self switchCamera:self];
-            break;
-        default:
-            [[self captureManager] captureStillImage];
-            break;
+    if (event.type == UIEventTypeRemoteControl) {
+        switch (event.subtype) {
+            case UIEventSubtypeRemoteControlNextTrack:
+                [self switchCamera:self];
+                break;
+            default:
+                [[self captureManager] captureStillImage];
+                break;
+        }
     }
 }
 
