@@ -10,31 +10,37 @@
 
 @synthesize captureManager;
 @synthesize scanningLabel;
+@synthesize camera;
+@synthesize cameraFlipButton = _cameraFlipButton;
 
 - (void)viewDidLoad {
-  
-	[self setCaptureManager:[[CaptureSessionManager alloc] init]];
-  
-	[[self captureManager] addVideoInputFrontCamera:NO]; // set to YES for Front Camera, No for Back camera
-  
-  [[self captureManager] addStillImageOutput];
-  
-	[[self captureManager] addVideoPreviewLayer];
-	CGRect layerRect = [[[self view] layer] bounds];
-    [[[self captureManager] previewLayer] setBounds:layerRect];
-    [[[self captureManager] previewLayer] setPosition:CGPointMake(CGRectGetMidX(layerRect),CGRectGetMidY(layerRect))];
-	[[[self view] layer] addSublayer:[[self captureManager] previewLayer]];
 
-  UILabel *tempLabel = [[UILabel alloc] initWithFrame:CGRectMake(100, 50, 120, 30)];
-  [self setScanningLabel:tempLabel];
+    [self updateCaptureManager];
+
+    _cameraFlipButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
+    [_cameraFlipButton addTarget:self action:@selector(switchCamera:) forControlEvents:UIControlEventTouchUpInside];
+    
+    UIImage * switchCameraImage = [UIImage imageNamed:@"switchCamera.png"];
+    UIImage * switchCameraImagePressed = [UIImage imageNamed:@"switchCameraPressed.png"];
+    
+    [_cameraFlipButton setBackgroundImage:switchCameraImage forState:UIControlStateNormal];
+    [_cameraFlipButton setBackgroundImage:switchCameraImagePressed forState:UIControlStateHighlighted];
+    
+    _cameraFlipButton.frame = CGRectMake(246.8, 12.0, 61.2, 32.0);
+    [_cameraFlipButton setBackgroundColor:[UIColor clearColor]];
+    [[self view] addSubview:_cameraFlipButton];
+    
+    
+    UILabel *tempLabel = [[UILabel alloc] initWithFrame:CGRectMake(100, 50, 120, 30)];
+    [self setScanningLabel:tempLabel];
 	[scanningLabel setBackgroundColor:[UIColor clearColor]];
 	[scanningLabel setFont:[UIFont fontWithName:@"Courier" size: 18.0]];
 	[scanningLabel setTextColor:[UIColor redColor]]; 
 	[scanningLabel setText:@"Saving..."];
-  [scanningLabel setHidden:YES];
+    [scanningLabel setHidden:YES];
 	[[self view] addSubview:scanningLabel];	
   
-  [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(saveImageToPhotoAlbum) name:kImageCapturedSuccessfully object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(saveImageToPhotoAlbum) name:kImageCapturedSuccessfully object:nil];
   
 	[[captureManager captureSession] startRunning];
     
@@ -54,6 +60,31 @@
     NSDictionary *metaData = [NSDictionary dictionaryWithObject:@"Snap Picure" forKey:MPMediaItemPropertyTitle];
     [MPNowPlayingInfoCenter defaultCenter].nowPlayingInfo = metaData;
 }
+
+
+- (void)updateCaptureManager
+{
+    [self setCaptureManager:[[CaptureSessionManager alloc] init]];
+    
+	[[self captureManager] addVideoInputFrontCamera:camera]; // set to current camera
+    [[self captureManager] addStillImageOutput];
+	[[self captureManager] addVideoPreviewLayer];
+	CGRect layerRect = [[[self view] layer] bounds];
+    [[[self captureManager] previewLayer] setBounds:layerRect];
+    [[[self captureManager] previewLayer] setPosition:CGPointMake(CGRectGetMidX(layerRect),CGRectGetMidY(layerRect))];
+	[[[self view] layer] addSublayer:[[self captureManager] previewLayer]];
+}
+
+
+
+- (void)switchCamera:(id)sender
+{
+    [self setCamera:![self camera]]; //toggle camera between front and back
+    [self updateCaptureManager];     //update the captureManager with the new camera view
+    [[[self captureManager] captureSession] startRunning];
+    [[self view] bringSubviewToFront:_cameraFlipButton];
+}
+
 
 - (void)saveImageToPhotoAlbum
 {
@@ -81,7 +112,14 @@
 }
 
 - (void)remoteControlReceivedWithEvent:(UIEvent *)event {
-    [[self captureManager] captureStillImage];
+    switch (event.subtype) {
+        case UIEventSubtypeRemoteControlNextTrack:
+            [self switchCamera:self];
+            break;
+        default:
+            [[self captureManager] captureStillImage];
+            break;
+    }
 }
 
 @end
